@@ -1,0 +1,51 @@
+service: nfl-betting-serverless-api-endpoint
+app: nfl-betting-serverless-api-endpoint
+org: erictenenbaum10
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+
+# Add the serverless-webpack plugin
+plugins:
+  - serverless-webpack
+  - serverless-pseudo-parameters
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  stage: dev
+  region: ${env:APP_AWS_REGION}
+  runtime: nodejs12.x
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+  environment:
+    accountId: "#{AWS::AccountId}"
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+  iamRoleStatements:
+   - Effect: Allow
+     Action:
+      - dynamodb:DescribeTable
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:GetItem
+     Resource:
+       - "arn:aws:dynamodb:${self:provider.region}:${self:provider.environment.accountId}:table/Teams"
+       - "arn:aws:dynamodb:${self:provider.region}:${self:provider.environment.accountId}:table/Games"
+
+functions:
+  teams:
+    handler: teams.getAllTeams
+    events:
+      - http:
+          method: get
+          path: teams
+          cors: true
+  team:
+    handler: teams.getTeam
+    events:
+      - http:
+          method: get
+          path: team/{id}
+          cors: true
